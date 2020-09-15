@@ -2,6 +2,274 @@ const BDUSS = '' //**INPUT YOUR BDUSS HERE**
 const STOKEN = '' //**INPUT YOUR STOKEN HERE**
 const SVIPBDUSS = '' //**INPUT YOUR SVIP BDUSS HERE**
 const INDEX_URL = '' // Input your index url here
+const AUTH_USER = '' //**INPUT BASIC AUTH USERNAME (optional)**
+const AUTH_PASS = '' //**INPUT BASIC AUTH SUPER SECRET PASSWORD (optional)**
+
+const rapidhtml = `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="author" content="Ling Macker"/>
+<meta name="description" content="PanDownload网页版,百度网盘分享链接在线解析工具"/>
+<meta name="keywords" content="PanDownload,百度网盘,分享链接,下载,不限速"/>
+<link rel="icon" href="https://pandownload.com/favicon.ico" type="image/x-icon"/>
+<link rel="stylesheet" href="https://cdn.staticfile.org/twitter-bootstrap/4.1.2/css/bootstrap.min.css">
+<script src="https://cdn.staticfile.org/jquery/3.2.1/jquery.min.js"></script>
+<script src="https://cdn.staticfile.org/limonte-sweetalert2/8.11.8/sweetalert2.all.min.js"></script>
+<script src="https://cdn.staticfile.org/popper.js/1.12.5/umd/popper.min.js"></script>
+<script src="https://cdn.staticfile.org/twitter-bootstrap/4.1.2/js/bootstrap.min.js"></script>
+<style>
+body {
+background-image: url("https://pandownload.com/img/baiduwp/bg.png");
+}
+
+.logo-img {
+width: 1.1em;
+position: relative;
+top: -3px;
+}
+</style>
+<title>PanDownload网页版</title>
+<style>
+.form-inline input {
+width: 500px;
+}
+
+.input-card {
+position: relative;
+top: 7.0em;
+}
+
+.card-header {
+height: 3.2em;
+font-size: 20px;
+line-height: 2.0em;
+}
+
+form input,
+form button {
+height: 3em;
+}
+</style>
+<link href="https://cdn.staticfile.org/font-awesome/5.8.1/css/all.min.css" rel="stylesheet">
+<script>
+  function atou(str) {
+    return decodeURIComponent(escape(window.atob(str)));
+  }
+  function Trim(str){  
+    return str.replace(/(^\\s*)|(\\s*$)/g, "");  
+  }
+  function dl(md5, slicemd5, flength, name) {
+    var form = $('<form method="post" action="/rapiddl" target="_blank"></form>');
+    form.append('<input type="hidden" name="md5" value="'+md5+'">');
+    form.append('<input type="hidden" name="slicemd5" value="'+slicemd5+'">');
+    form.append('<input type="hidden" name="flength" value="'+flength+'">');
+    form.append('<input type="hidden" name="name" value="'+name+'">');
+    $(document.body).append(form);
+    form.submit();
+  }
+  function getFileType(filename){
+    var point = filename.lastIndexOf(".");
+    var t = filename.substr(point+1);
+    if (t == ""){
+      return "";
+    }
+    t = t.toLowerCase();
+    return t;
+  }
+  function getIconClass(filename){
+    var filetype = {
+      file_video: ["wmv", "rmvb", "mpeg4", "mpeg2", "flv", "avi", "3gp", "mpga", "qt", "rm", "wmz", "wmd", "wvx", "wmx", "wm", "mpg", "mp4", "mkv", "mpeg", "mov", "asf", "m4v", "m3u8", "swf"],
+      file_audio: ["wma", "wav", "mp3", "aac", "ra", "ram", "mp2", "ogg", "aif", "mpega", "amr", "mid", "midi", "m4a", "flac"],
+      file_image: ["jpg", "jpeg", "gif", "bmp", "png", "jpe", "cur", "svgz", "ico"],
+      file_archive: ["rar", "zip", "7z", "iso"],
+      windows: ["exe"],
+      apple: ["ipa"],
+      android: ["apk"],
+      file_alt: ["txt", "rtf"],
+      file_excel: ["xls", "xlsx"],
+      file_word: ["doc", "docx"],
+      file_powerpoint: ["ppt", "pptx"],
+      file_pdf: ["pdf"],
+    };
+    var point = filename.lastIndexOf(".");
+    var t = filename.substr(point+1);
+    if (t == ""){
+      return "";
+    }
+    t = t.toLowerCase();
+    for(var icon in filetype) {
+      for(var type in filetype[icon]) {
+        if (t == filetype[icon][type])
+        {
+          return "fa-"+icon.replace('_', '-');
+        }
+      }
+    }
+    return "";
+  }
+  function replaceIcon(){
+    $(".fa-file").each(function(){
+      var icon = getIconClass($(this).next().text());
+      var filetype = getFileType($(this).next().text())
+      var type = icon.substring(8);
+      if (icon != "")
+      {
+        if (icon == "fa-windows" || icon == "fa-android" || icon == "fa-apple")
+        {
+          $(this).removeClass("far").addClass("fab");
+        }
+        $(this).removeClass("fa-file").addClass(icon);
+      }
+    });
+  }
+  function getLink(link) {
+    const bdpan = link.match(/bdpan:\\/\\/(.+)/);;
+    const pcs = link.match('BaiduPCS-Go');
+    const mengji = link.match(/.{32}#.{32}/);
+    const bdlink = link.match('bdlink(.+)');
+    if (bdpan){
+      const deb64 = atou(bdpan[1]);
+      const md5 = deb64.match(/\\|(.{32})\\|/)[1];
+      const slicemd5 = deb64.match(/\\|([^\\|]{32})$/)[1];
+      const file_length = deb64.match(/\\|([0-9]+)\\|/)[1];
+      const file_name = deb64.match(/^(.+\\.[a-zA-Z]{1,9})\\|/)[1];
+      return {'md5':md5,'slicemd5':slicemd5,'flength':file_length,'name':file_name};
+    }
+    else if (pcs){
+      const input = link;
+      const length = input.match(/length\\=([0-9]+)/)[1];
+      const md5 = input.match(/\\-md5\\=(.{32})/)[1];
+      const slicemd5 = input.match(/\\-slicemd5\\=(.{32})/)[1];
+      const file_name = input.match(/\\"(.+)\\"/)[1];
+      return {'md5':md5,'slicemd5':slicemd5,'flength':length,'name':file_name};
+    }
+    else if(mengji){
+      const input = link;
+      const md5 = input.match(/^(.{32})#/)[1];
+      const slicemd5 = input.match(/#(.{32})#/)[1];
+      const file_length = input.match(/#([0-9]+)#/)[1];
+      const file_name = Trim(input.match(/#[0-9]+#(.+)$/)[1]);
+      return {'md5':md5,'slicemd5':slicemd5,'flength':file_length,'name':file_name};
+    }
+    else if(bdlink){
+      let files = []
+      const bdlink1 = link.match('bdlink\\=([a-zA-Z0-9\\=\\/\\+]+\\={0,2})[\\#\\?\\&]?');
+      const bdlink2 = link.match('bdlink\\=([a-zA-Z0-9\\=\\/\\+]+\\={0,2})$');
+      let de_b64
+      if(bdlink1){
+        de_b64 = atou(bdlink1[1]);
+        if(de_b64.split('\\n').length > 1){
+          for (i=0;i<de_b64.split('\\n').length;i++)
+            files.push(getLink(de_b64.split('\\n')[i]))
+          return files
+        }
+        else if(de_b64.split('\\n').length == 1)
+          return getLink(de_b64);
+      }
+      else if(bdlink2){
+        de_b64 = atou(bdlink2[1]);
+        if(de_b64.split('\\n').length > 1){
+          for (i=0;i<de_b64.split('\\n').length;i++){
+            files.push(getLink(de_b64.split('\\n')[i]))
+          }
+          return files
+        }
+        else if(de_b64.split('\\n').length == 1)
+          return getLink(de_b64);
+      }
+    }
+    else{
+      return false;
+    }
+  }
+  function genFile() {
+    let file = []
+    const links = document.getElementById('links').value.split('\\n').filter(function(el){
+      return el != "" && el != null
+    });
+    for(i=0;i<links.length;i++){
+      const fileinfo = getLink(links[i])
+      if(fileinfo != false){
+        file.push(fileinfo);
+      }
+      else{
+        Swal.fire('未检测到有效链接');
+        return false;
+      }
+    }
+    let filelist = \`<ol class="breadcrumb my-4">
+文件列表&nbsp;&nbsp;<a href="">返回</a> </ol>
+<div>
+<ul class="list-group ">\`
+    function addFile(file){
+      const md5 = file['md5']
+      const slicemd5 = file['slicemd5']
+      const flength = file['flength']
+      const name = file['name']
+      return \`<li class="list-group-item border-muted rounded text-muted py-2">
+<i class="far fa-file mr-2"></i>
+<a href="javascript:void(0)" onclick="dl('\${md5}','\${slicemd5}','\${flength}','\${name}')">\${name}</a>
+<span class="float-right">\${flength}</span></li>\`
+    }
+    for(const f in file){
+      if(file[f].length > 1){
+        for(const fs in file[f]){
+          filelist += addFile(file[f][fs])
+        }
+      }
+      else if(file[f] ){
+        filelist += addFile(file[f])
+      }
+    }
+    const orig = document.getElementsByClassName("container")[1]
+    orig.innerHTML = ""
+    orig.innerHTML += filelist + "</ul></div></div></body></html>";
+    replaceIcon();
+  }
+</script>
+</head>
+<body>
+<nav class="navbar navbar-expand-sm bg-dark navbar-dark">
+<div class="container">
+<a class="navbar-brand" href="${INDEX_URL}">
+<img src="https://pandownload.com/img/baiduwp/logo.png" class="img-fluid rounded logo-img mr-2" alt="LOGO">PanDownload
+</a>
+<button class="navbar-toggler border-0" type="button" data-toggle="collapse" data-target="#collpase-bar">
+<span class="navbar-toggler-icon"></span>
+</button>
+<div class="collapse navbar-collapse" id="collpase-bar">
+<ul class="navbar-nav">
+<li class="nav-item">
+<a class="nav-link" href="${INDEX_URL}">主页</a>
+</li>
+<li class="nav-item">
+<a class="nav-link" href="https://github.com/TkzcM/baiduwp" target="_blank">GitHub</a>
+</li>
+</ul>
+</div>
+</div>
+</nav>
+<div class="container">
+<div class="col-lg-6 col-md-9 mx-auto mb-5 input-card">
+<div class="card">
+<div class="card-header bg-dark text-light">秒传链接在线解析</div>
+<div class="card-body">
+<form name="form1" method="post" action="./rapiddl">
+<div class="form-group my-2">
+<textarea type="text" class="form-control" id="links" name="surl" placeholder="秒传链接（支持批量解析，每行一条链接）">
+</textarea>
+</div>
+<button type="button" onclick="genFile()" class="mt-4 mb-3 form-control btn btn-success btn-block">打开</button>
+</form>
+</div>
+</div>
+</div>
+</div>
+</body>
+</html>`
 
 const error = `
 <!DOCTYPE html>
@@ -67,6 +335,91 @@ const error = `
 <div class="row justify-content-center">
 <div class="col-md-7 col-sm-8 col-11">`
 
+const previewHeader = `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="author" content="Ling Macker"/>
+<meta name="description" content="PanDownload网页版,百度网盘分享链接在线解析工具"/>
+<meta name="keywords" content="PanDownload,百度网盘,分享链接,下载,不限速"/>
+<link rel="icon" href="https://pandownload.com/favicon.ico" type="image/x-icon"/>
+<link rel="stylesheet" href="https://cdn.staticfile.org/twitter-bootstrap/4.1.2/css/bootstrap.min.css">
+<script src="https://cdn.staticfile.org/jquery/3.2.1/jquery.min.js"></script>
+<script src="https://cdn.staticfile.org/popper.js/1.12.5/umd/popper.min.js"></script>
+<script src="https://cdn.staticfile.org/twitter-bootstrap/4.1.2/js/bootstrap.min.js"></script>
+<script src="https://cdn.staticfile.org/dplayer/1.26.0/DPlayer.min.js"></script>
+<style>
+  body {
+    background-image: url("https://pandownload.com/img/baiduwp/bg.png");
+  }
+
+  .logo-img {
+    width: 1.1em;
+    position: relative;
+    top: -3px;
+  }
+  #video{
+	max-width: 100%;
+  }
+</style>
+<meta name="referrer" content="never">
+<title>视频预览</title>
+<style>
+    .alert {
+      position: relative;
+      top: 3em;
+    }
+	.dplayer-logo {
+		pointer-events: none;
+		position: absolute;
+		left:auto;
+		right: 10px;
+		top: 10px;
+		max-width: 30px;
+		max-height: 30px;
+	}
+    .alert-heading {
+      height: 0.8em;
+    }
+  </style>
+<script>`
+
+const previewFooter = `</script>
+</head>
+<body>
+<nav class="navbar navbar-expand-sm bg-dark navbar-dark">
+<div class="container">
+<a class="navbar-brand" href="${INDEX_URL}">
+<img src="https://pandownload.com/img/baiduwp/logo.png" class="img-fluid rounded logo-img mr-2" alt="LOGO">PanDownload
+</a>
+<button class="navbar-toggler border-0" type="button" data-toggle="collapse" data-target="#collpase-bar">
+<span class="navbar-toggler-icon"></span>
+</button>
+<div class="collapse navbar-collapse" id="collpase-bar">
+<ul class="navbar-nav">
+<li class="nav-item">	
+<a class="nav-link" href="${INDEX_URL}">主页</a>
+</li>
+</ul>
+</div>
+</div>
+</nav>
+<div class="container-fluid" id="video">
+<div class="row justify-content-center">
+<div class="col-md-7 col-sm-8 col-11">
+<div class="alert alert-primary" role="alert">
+<h5 class="alert-heading">视频预览 with ❤ DPlayer</h5>
+<hr>
+<p class="card-text"><a href="./help">如无法播放请按照教程修改UA</a><br><div id="dplayer"></div></p>
+</div>
+</div>
+</div>
+</div>
+</body>
+</html>`
+
 const filebody = `<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -106,6 +459,42 @@ const filebody = `<!DOCTYPE html>
     form.append('<input type="hidden" name="uk" value="'+uk+'">');
     $(document.body).append(form);
     form.submit();
+  }
+  function video(fs_id, timestamp, sign, randsk, share_id, uk, filetype){
+    Swal.fire({
+      title: '请选择',
+      icon: 'info',
+      showCancelButton: true,
+      confirmButtonColor: '#3085d6',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: '下载',
+      cancelButtonText: '预览'
+    }).then((result) => {
+      if (result.value) {
+        dl(fs_id, timestamp, sign, randsk, share_id, uk);
+      }
+      else if(result.dismiss === Swal.DismissReason.cancel){
+        let form = $('<form method="post" action="/preview" target="_blank"></form>');
+        form.append('<input type="hidden" name="fs_id" value="'+fs_id+'">');
+        form.append('<input type="hidden" name="time" value="'+timestamp+'">');
+        form.append('<input type="hidden" name="sign" value="'+sign+'">');
+        form.append('<input type="hidden" name="randsk" value="'+randsk+'">');
+        form.append('<input type="hidden" name="share_id" value="'+share_id+'">');
+        form.append('<input type="hidden" name="uk" value="'+uk+'">');
+        form.append('<input type="hidden" name="filetype" value="'+filetype+'">');
+        $(document.body).append(form);
+        form.submit();
+      }
+    })
+  }
+  function getFileType(filename){
+    var point = filename.lastIndexOf(".");
+    var t = filename.substr(point+1);
+    if (t == ""){
+      return "";
+    }
+    t = t.toLowerCase();
+    return t;
   }
   function getIconClass(filename){
     var filetype = {
@@ -154,6 +543,13 @@ const filebody = `<!DOCTYPE html>
   $(document).ready(function(){
     $(".fa-file").each(function(){
       var icon = getIconClass($(this).next().text());
+      var filetype = getFileType($(this).next().text())
+      var type = icon.substring(8);
+      if(type == 'video'||type == 'audio'){
+        const link = $(this).next().attr("onclick")
+        const postlink = link.substring(3,link.length-1)
+        $(this).next().attr("onclick","video("+postlink+",'"+filetype+"')")
+      }
       if (icon != "")
       {
         if (icon == "fa-windows" || icon == "fa-android" || icon == "fa-apple")
@@ -464,6 +860,9 @@ return true;
 </div>
 <button type="submit" class="mt-4 mb-3 form-control btn btn-success btn-block">打开</button>
 </form>
+<div class="text-center">
+<a href="./rapid">秒传链接解析 (WIP)</a>
+</div>
 </div>
 </div>
 </div>
@@ -744,7 +1143,96 @@ const dfooter = `
 </body>
 </html>`
 
+const dlRapid = async request => {
+  const form = await request.formData()
+  const md5 = form.get('md5')
+  const slicemd5 = form.get('slicemd5')
+  const flength = form.get('flength')
+  const filename = form.get('name')
+  // TODO: sercet download method, implement yourself.
+  return new Response('WIP, check progress: https://github.com/TkzcM/baiduwp',{ headers: {'Content-Type': 'text/html;charset=UTF-8'} })
+}
 
+const getVideo = async request => {
+  const ua = request.headers.get('User-Agent')
+  let previewScript
+  const form2 = await request.formData()
+  const fs_id = form2.get('fs_id')
+  const timestamp = form2.get('time')
+  const sign = form2.get('sign')
+  const randsk = form2.get('randsk')
+  const share_id = form2.get('share_id')
+  const uk = form2.get('uk')
+  const filetype = form2.get('filetype')
+  async function getDlink(fs_id,timestamp,sign,randsk,share_id,uk){
+    var formData2 = new FormData()
+    formData2.append('encrypt',0)
+    formData2.append('extra','{"sekey":"'+decodeURIComponent(randsk)+'"}')
+    formData2.append('fid_list','['+fs_id+']')
+    formData2.append('primaryid',share_id)
+    formData2.append('uk',uk)
+    formData2.append('product','share')
+    formData2.append('type','nolimit')
+    const res3 = await fetch('https://pan.baidu.com/api/sharedownload?app_id=250528&channel=chunlei&clienttype=12&sign='+sign+'&timestamp='+timestamp+'&web=1',{
+      body:formData2,
+      headers:{
+        'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.514.1919.810 Safari/537.36',
+        'Cookie':'BDUSS=' + BDUSS + ';'
+            +  'STOKEN=' + STOKEN + '; BDCLND=' + randsk
+      },
+      method:'POST'
+      }
+    )
+    return JSON.parse(await res3.text())
+  }
+  const json3 = await getDlink(fs_id,timestamp,sign,randsk,share_id,uk)
+  if(json3.errno == 0){
+  const dlink = json3.list[0].dlink
+  const getRealLink = await fetch(dlink,{
+    headers:{
+      'user-agent': ua,
+      'Cookie': 'BDUSS=' + SVIPBDUSS + ';'
+    },
+    redirect:"manual"
+  })
+  const dldata = JSON.parse(await getRealLink.text())
+  if(dldata.error_code == 302){
+    const realLink = getRealLink.headers.get('Location').substring(7)
+    previewScript = `$(function(){
+      const dp = new DPlayer({
+        container: document.getElementById('dplayer'),
+        video: {
+            url: 'https://`+realLink+`',
+       },
+    logo: 'https://pandownload.com/img/baiduwp/logo.png',
+    })
+    })`
+  }
+  else{
+    previewScript = `$(function(){
+      const dp = new DPlayer({
+        container: document.getElementById('dplayer'),
+        video: {
+            url: 'failed',
+       },
+    logo: 'https://pandownload.com/img/baiduwp/logo.png',
+    })
+    })`
+  }
+}
+else{
+  previewScript = `$(function(){
+    const dp = new DPlayer({
+      container: document.getElementById('dplayer'),
+      video: {
+          url: 'failed',
+     },
+  logo: 'https://pandownload.com/img/baiduwp/logo.png',
+  })
+  })`
+}
+  return new Response(previewHeader+previewScript+previewFooter, { headers: {'Content-Type': 'text/html;charset=UTF-8'} })
+}
 
 const download = async request => {
   const form2 = await request.formData()
@@ -818,12 +1306,42 @@ const download = async request => {
 
   return new Response(dbody+dresult+dfooter, { headers: {'Content-Type': 'text/html;charset=UTF-8'} })
 }
+function parseAuthHeader(str) {
+  if (!str) {
+    return null
+  }
+
+  try {
+    const token = (str.match(/^\s*BASIC\s+(.+)\s*$/i) || [])[1]
+    const [, user, pass] = atob(token).match(/^([^:]*):(.*)$/)
+    return { user, pass }
+  } catch (error) {
+    return null
+  }
+}
 async function handleRequest(request) {
   let response
-  const { url } = request
+  const { url, headers } = request
+  if (AUTH_USER || AUTH_PASS) {
+    const credentials = parseAuthHeader(headers.get('Authorization'))
+    if (!credentials || credentials.user !== AUTH_USER || credentials.pass !== AUTH_PASS) {
+      return new Response('Unauthorized', {
+        status: 401,
+        headers: {
+          'WWW-Authenticate': 'Basic realm="Not Authorized", charset="UTF-8"'
+        }
+      })
+    }
+  }
   if (request.method === 'POST') {
     if(url.includes('download')){
       response = await download(request)
+    }
+    else if(url.includes('preview')){
+      response = await getVideo(request)
+    }
+    else if(url.includes('rapiddl')){
+      response = await dlRapid(request)
     }
     else{
       response = await generate(request)
@@ -879,6 +1397,9 @@ async function handleRequest(request) {
 </p>
 </div>
       `+dfooter, { headers: { 'Content-Type': 'text/html;charset=UTF-8' } })
+    }
+    else if(url.includes('rapid')){
+      response = new Response(rapidhtml, { headers: { 'Content-Type': 'text/html;charset=UTF-8' } })
     }
     else{
     response = new Response(landing, { headers: { 'Content-Type': 'text/html;charset=UTF-8' } })
